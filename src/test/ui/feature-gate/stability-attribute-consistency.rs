@@ -11,12 +11,6 @@
 #![stable(feature = "stable_test_feature", since = "1.0.0")]
 
 #![feature(staged_api)]
-// Right now, stability attributes are only checked for consistency if we're
-// collecting lib feature attributes, for performance. We collect lib
-// feature attributes if there are non-lang feature attributes, or a crate
-// that depends on the current one has non-lang feature attributes. Thus,
-// we're enabling an arbitrary lib feature to force the check to kick in.
-#![feature(rustc_private)]
 
 #[stable(feature = "foo", since = "1.0.0")]
 fn foo_stable_1_0_0() {}

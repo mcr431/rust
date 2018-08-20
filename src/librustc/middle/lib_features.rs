@@ -18,7 +18,6 @@ use ty::TyCtxt;
 use syntax::symbol::Symbol;
 use syntax::ast::{Attribute, MetaItem, MetaItemKind};
 use syntax_pos::{Span, DUMMY_SP};
-use hir::{Item, ItemKind};
 use hir::intravisit::{self, NestedVisitorMap, Visitor};
 use rustc_data_structures::fx::{FxHashSet, FxHashMap};
 use errors::DiagnosticId;
@@ -144,26 +143,6 @@ impl<'a, 'tcx> Visitor<'tcx> for LibFeatureCollector<'a, 'tcx> {
         NestedVisitorMap::All(&self.tcx.hir)
     }
 
-    fn visit_item(&mut self, item: &'tcx Item) {
-        match item.node {
-            ItemKind::ExternCrate(_) => {
-                let def_id = self.tcx.hir.local_def_id(item.id);
-                let cnum = match self.tcx.extern_mod_stmt_cnum(def_id) {
-                    Some(cnum) => cnum,
-                    None => return,
-                };
-
-                for &(feature, since) in self.tcx.defined_lib_features(cnum).iter() {
-                    self.collect_feature(feature, since, DUMMY_SP);
-                }
-            }
-
-            _ => {}
-        }
-
-        intravisit::walk_item(self, item);
-    }
-
     fn visit_attribute(&mut self, attr: &'tcx Attribute) {
         if let Some((feature, stable, span)) = self.extract(attr) {
             self.collect_feature(feature, stable, span);
@@ -173,6 +152,11 @@ impl<'a, 'tcx> Visitor<'tcx> for LibFeatureCollector<'a, 'tcx> {
 
 pub fn collect<'a, 'tcx>(tcx: TyCtxt<'a, 'tcx, 'tcx>) -> LibFeatures {
     let mut collector = LibFeatureCollector::new(tcx);
+    for &cnum in tcx.crates().iter() {
+        for &(feature, since) in tcx.defined_lib_features(cnum).iter() {
+            collector.collect_feature(feature, since, DUMMY_SP);
+        }
+    }
     intravisit::walk_crate(&mut collector, tcx.hir.krate());
     collector.lib_features
 }

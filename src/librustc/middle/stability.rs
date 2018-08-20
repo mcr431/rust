@@ -846,20 +846,18 @@ pub fn check_unused_or_stable_features<'a, 'tcx>(tcx: TyCtxt<'a, 'tcx, 'tcx>) {
     remaining_lib_features.remove(&Symbol::intern("libc"));
     remaining_lib_features.remove(&Symbol::intern("test"));
 
-    if !remaining_lib_features.is_empty() {
-        for (feature, stable) in tcx.lib_features().to_vec() {
-            if let Some(since) = stable {
-                if let Some(span) = remaining_lib_features.get(&feature) {
-                    // Warn if the user has enabled an already-stable lib feature.
-                    unnecessary_stable_feature_lint(tcx, *span, feature, since);
-                }
+    for (feature, stable) in tcx.lib_features().to_vec() {
+        if let Some(since) = stable {
+            if let Some(span) = remaining_lib_features.get(&feature) {
+                // Warn if the user has enabled an already-stable lib feature.
+                unnecessary_stable_feature_lint(tcx, *span, feature, since);
             }
-            remaining_lib_features.remove(&feature);
         }
+        remaining_lib_features.remove(&feature);
+    }
 
-        for (feature, span) in remaining_lib_features {
-            struct_span_err!(tcx.sess, span, E0635, "unknown feature `{}`", feature).emit();
-        }
+    for (feature, span) in remaining_lib_features {
+        struct_span_err!(tcx.sess, span, E0635, "unknown feature `{}`", feature).emit();
     }
 
     // FIXME(#44232): the `used_features` table no longer exists, so we
